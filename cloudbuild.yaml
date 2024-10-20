@@ -43,38 +43,6 @@ steps:
       ./build.sh
   secretEnv: ['GITHUB_SSH_KEY']
 
-# - name: 'debian:bookworm'
-#   entrypoint: 'bash'
-#   args:
-#     - '-c'
-#     - |
-#       echo "Running in Debian Bookworm"
-#       # Update and install necessary dependencies
-#       apt-get update && apt-get -y install --no-install-recommends \
-#         git vim parted \
-#         quilt coreutils qemu-user-static debootstrap zerofree zip dosfstools \
-#         libarchive-tools libcap2-bin rsync grep udev xz-utils curl xxd file kmod bc \
-#         binfmt-support ca-certificates fdisk gpg pigz arch-test openssh openssh-client
-#       rm -rf /var/lib/apt/lists/*
-#       # Configure SSH key
-#       mkdir -p /root/.ssh
-#       echo "$$GITHUB_SSH_KEY" > /root/.ssh/id_rsa
-#       chmod 400 /root/.ssh/id_rsa
-#       ssh-keyscan -t rsa github.com >> /root/.ssh/known_hosts
-
-#       # Clone pi-gen repository
-#       git clone --branch=arm64-marika-dev git@github.com:wendylabsinc/os-gen.git
-
-#       # Navigate to pi-gen directory
-#       cd os-gen
-
-#       # Set up environment variables or configuration files as needed
-#       echo "IMG_NAME='CustomPiImage'" > config
-
-#       # Run pi-gen build script
-#       ./build.sh
-#   secretEnv: ['GITHUB_SSH_KEY']
-
 availableSecrets:
   secretManager:
   - versionName: projects/172350526574/secrets/GITHUB_SSH_KEY/versions/latest
