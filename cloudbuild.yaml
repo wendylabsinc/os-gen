@@ -1,0 +1,102 @@
+steps:
+# Set up QEMU for multi-architecture support
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['run', '--rm', '--privileged', 'multiarch/qemu-user-static', '--reset', '-p', 'yes']
+
+# Build the Docker image
+- name: 'gcr.io/cloud-builders/docker'
+  args: ['build', '-t', 'gcr.io/${PROJECT_ID}/os-gen-builder', '.']
+
+# Create config file
+- name: 'gcr.io/$PROJECT_ID/os-gen-builder'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      # Placeholder for a version number
+      T=$(date +%Y-%m-%d)
+      VERSION=${_PI_GEN_RELEASE}_$${T}
+      IMG_NAME=${_ORG_ID}-${_RELEASE}-${_ARCH}-$${T}
+
+      cat << EOF > config
+      PI_GEN_RELEASE=$${VERSION}
+      RELEASE=${_RELEASE}
+      FIRST_USER_NAME=${_FIRST_USER_NAME}
+      FIRST_USER_PASS=${_FIRST_USER_PASS}
+      ENABLE_SSH=${_ENABLE_SSH}
+      WPA_COUNTRY=${_WPA_COUNTRY}
+      ARCH=${_ARCH}
+      IMG_NAME=$${IMG_NAME}
+      EOF
+
+      # Export IMG_NAME for use in later steps
+      echo "$${IMG_NAME}" > /workspace/img_name.txt
+
+# Run the build process using the newly created image
+- name: 'gcr.io/$PROJECT_ID/os-gen-builder'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      echo "Running in Debian ${_RELEASE}"
+
+      # Set up binfmt-support for multi-architecture support
+      update-binfmts --enable
+
+      # Configure SSH key for GitHub access
+      echo "$$GITHUB_SSH_KEY" > /root/.ssh/id_rsa
+      chmod 400 /root/.ssh/id_rsa
+      ssh-keyscan -t rsa github.com >> /root/.ssh/known_hosts
+
+      # Clone pi-gen repository
+      echo "Cloning pi-gen repository"
+      git clone --branch=arm64-marika-dev git@github.com:wendylabsinc/os-gen.git
+
+      # Copy config file to pi-gen directory; this is the custom config file
+      # generated with input from the UI
+      cp config os-gen/
+      
+      # Navigate to pi-gen directory
+      cd os-gen
+      echo "Starting build with config file:"
+      cat config
+      echo "----------------------------------------"
+
+      # Skip stages 3, 4, and 5
+      touch ./stage3/SKIP ./stage4/SKIP ./stage5/SKIP
+      # Skip image exports for stages 4 and 5
+      touch ./stage4/SKIP_IMAGES ./stage5/SKIP_IMAGES
+      
+      # Run pi-gen build script
+      echo "Running pi-gen build script"
+      ./build.sh
+
+  secretEnv: ['GITHUB_SSH_KEY']
+
+# Upload artifact to Cloud Storage
+- name: 'gcr.io/cloud-builders/gsutil'
+  entrypoint: 'bash'
+  args:
+    - '-c'
+    - |
+      IMG_NAME=$(cat /workspace/img_name.txt)
+      gsutil -m cp -r /workspace/os-gen/deploy/* gs://${_ARTIFACT_BUCKET}/${_ARTIFACT_PREFIX}/images/$${IMG_NAME}.tgz
+
+options:
+  machineType: 'E2_HIGHCPU_32'
+
+availableSecrets:
+  secretManager:
+  - versionName: projects/172350526574/secrets/GITHUB_SSH_KEY/versions/latest
+    env: 'GITHUB_SSH_KEY'
+
+substitutions:
+  _RELEASE: 'bookworm'
+  _PI_GEN_RELEASE: 'Marika Pi ref'
+  _FIRST_USER_NAME: 'pi'
+  _FIRST_USER_PASS: 'raspberry'
+  _ENABLE_SSH: '1'
+  _WPA_COUNTRY: 'US'
+  _ARCH: 'arm64'
+  _ARTIFACT_BUCKET: 'wendylabs-os-gen-artifacts'
+  _ORG_ID: 'wendylabsinc'
