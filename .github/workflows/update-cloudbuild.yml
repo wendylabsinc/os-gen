@@ -1,0 +1,32 @@
+name: Update cloudbuild.yaml in GCS
+
+on:
+  push:
+    paths:
+      - 'cloudbuild.yaml'
+    branches:
+      - arm64-marika-dev
+
+jobs:
+  upload-to-gcs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        workload_identity_provider: 'projects/os-gen/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+        service_account: 'cloudbuild-pusher@os-gen.iam.gserviceaccount.com'
+
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v1'
+
+    - name: 'Upload cloudbuild.yaml to GCS'
+      run: |
+        gsutil cp cloudbuild.yaml gs://builders/pi-build/pi_image.yaml
