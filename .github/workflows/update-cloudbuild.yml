@@ -39,5 +39,10 @@ jobs:
 
     - name: 'Upload cloudbuild.yaml to GCS'
       run: |
+        echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
+        cat $GOOGLE_APPLICATION_CREDENTIALS
+        gcloud config list
         gcloud auth list
+        gcloud auth print-identity-token
+        gsutil ls gs://os-gen_cloudbuild/
         gsutil cp cloudbuild.yaml gs://os-gen_cloudbuild/pi-build-config/pi_image.yaml
