@@ -1,4 +1,3 @@
-# updates are pushed by the github action workflow
 steps:
 # Set up QEMU for multi-architecture support
 - name: 'gcr.io/cloud-builders/docker'
