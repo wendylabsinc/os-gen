@@ -6,6 +6,7 @@ on:
       - 'cloudbuild.yaml'
     branches:
       - arm64-marika-dev
+  workflow_dispatch:
 
 jobs:
   upload-to-gcs:
