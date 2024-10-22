@@ -29,10 +29,10 @@ jobs:
       name: 'Authenticate to Google Cloud'
       uses: 'google-github-actions/auth@v1'
       with:
-        workload_identity_provider: 'projects/os-gen/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+        workload_identity_provider: 'projects/172350526574/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
         service_account: 'cloudbuild-pusher@os-gen.iam.gserviceaccount.com'
         create_credentials_file: true
-        export_environment_variables: true
+        token_format: 'access_token'
 
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v1'
@@ -40,9 +40,7 @@ jobs:
     - name: 'Upload cloudbuild.yaml to GCS'
       run: |
         echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
-        cat $GOOGLE_APPLICATION_CREDENTIALS
-        gcloud config list
         gcloud auth list
-        gcloud auth print-identity-token
-        gsutil ls gs://os-gen_cloudbuild/
+        gcloud config list
+        gcloud auth print-access-token
         gsutil cp cloudbuild.yaml gs://os-gen_cloudbuild/pi-build-config/pi_image.yaml
