@@ -29,4 +29,4 @@ jobs:
 
     - name: 'Upload cloudbuild.yaml to GCS'
       run: |
-        gsutil cp cloudbuild.yaml gs://builders/pi-build/pi_image.yaml
+        gsutil cp cloudbuild.yaml gs://os-gen_cloudbuild/pi-build-config/pi_image.yaml
