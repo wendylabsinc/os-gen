@@ -23,10 +23,13 @@ jobs:
       with:
         workload_identity_provider: 'projects/os-gen/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
         service_account: 'cloudbuild-pusher@os-gen.iam.gserviceaccount.com'
+        create_credentials_file: true
+        export_environment_variables: true
 
     - name: 'Set up Cloud SDK'
       uses: 'google-github-actions/setup-gcloud@v1'
 
     - name: 'Upload cloudbuild.yaml to GCS'
       run: |
+        gcloud auth list
         gsutil cp cloudbuild.yaml gs://os-gen_cloudbuild/pi-build-config/pi_image.yaml
