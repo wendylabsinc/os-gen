@@ -5,10 +5,10 @@ steps:
 
 # Build the Docker image
 - name: 'gcr.io/cloud-builders/docker'
-  args: ['build', '-t', 'gcr.io/${PROJECT_ID}/os-gen-builder', '.']
+  args: ['build', '-t', 'gcr.io/${PROJECT_ID}/marika-iot-builder', '.']
 
 # Create config file
-- name: 'gcr.io/$PROJECT_ID/os-gen-builder'
+- name: 'gcr.io/$PROJECT_ID/marika-iot-builder'
   entrypoint: 'bash'
   args:
     - '-c'
@@ -33,7 +33,7 @@ steps:
       echo "$${IMG_NAME}" > /workspace/img_name.txt
 
 # Run the build process using the newly created image
-- name: 'gcr.io/$PROJECT_ID/os-gen-builder'
+- name: 'gcr.io/$PROJECT_ID/marika-iot-builder'
   entrypoint: 'bash'
   args:
     - '-c'
@@ -83,11 +83,11 @@ steps:
       gsutil -m cp -r /workspace/os-gen/deploy/* gs://${_ARTIFACT_BUCKET}/${_ARTIFACT_PREFIX}/images/$${IMG_NAME}.tgz
 
 options:
-  machineType: 'E2_HIGHCPU_32'
+  machineType: 'E2_HIGHCPU_8'
 
 availableSecrets:
   secretManager:
-  - versionName: projects/172350526574/secrets/GITHUB_SSH_KEY/versions/latest
+  - versionName: projects/724293370564/secrets/GITHUB_SSH_KEY/versions/latest
     env: 'GITHUB_SSH_KEY'
 
 substitutions:
@@ -98,5 +98,5 @@ substitutions:
   _ENABLE_SSH: '1'
   _WPA_COUNTRY: 'US'
   _ARCH: 'arm64'
-  _ARTIFACT_BUCKET: 'wendylabs-os-gen-artifacts'
+  _ARTIFACT_BUCKET: 'marika-os-images'
   _ORG_ID: 'wendylabsinc'

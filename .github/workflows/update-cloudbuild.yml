@@ -29,8 +29,8 @@ jobs:
       name: 'Authenticate to Google Cloud'
       uses: 'google-github-actions/auth@v1'
       with:
-        workload_identity_provider: 'projects/172350526574/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
-        service_account: 'cloudbuild-pusher@os-gen.iam.gserviceaccount.com'
+        workload_identity_provider: 'projects/724293370564/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+        service_account: 'cloudbuild-pusher@marika-iot.iam.gserviceaccount.com'
         create_credentials_file: true
         token_format: 'access_token'
 
@@ -43,4 +43,4 @@ jobs:
         gcloud auth list
         gcloud config list
         gcloud auth print-access-token
-        gsutil cp cloudbuild.yaml gs://os-gen_cloudbuild/pi-build-config/pi_image.yaml
+        gsutil cp cloudbuild.yaml gs://marika-os-build-configs/pi-build-config/pi_image.yaml
