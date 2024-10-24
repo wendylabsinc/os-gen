@@ -1,0 +1,46 @@
+name: Update cloudbuild.yaml in GCS
+
+on:
+  push:
+    paths:
+      - 'cloudbuild.yaml'
+    branches:
+      - arm64-marika-dev
+  workflow_dispatch:
+    inputs:
+      logLevel:
+        description: 'Log level'
+        required: true
+        default: 'info'
+      tags:
+        description: 'Test scenario tags'
+
+jobs:
+  upload-to-gcs:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: 'read'
+      id-token: 'write'
+
+    steps:
+    - uses: actions/checkout@v2
+
+    - id: 'auth'
+      name: 'Authenticate to Google Cloud'
+      uses: 'google-github-actions/auth@v1'
+      with:
+        workload_identity_provider: 'projects/724293370564/locations/global/workloadIdentityPools/github-pool/providers/github-provider'
+        service_account: 'cloudbuild-pusher@marika-iot.iam.gserviceaccount.com'
+        create_credentials_file: true
+        token_format: 'access_token'
+
+    - name: 'Set up Cloud SDK'
+      uses: 'google-github-actions/setup-gcloud@v1'
+
+    - name: 'Upload cloudbuild.yaml to GCS'
+      run: |
+        echo "GOOGLE_APPLICATION_CREDENTIALS: $GOOGLE_APPLICATION_CREDENTIALS"
+        gcloud auth list
+        gcloud config list
+        gcloud auth print-access-token
+        gsutil cp cloudbuild.yaml gs://marika-os-build-configs/pi-build-config/pi_image.yaml

@@ -1,3 +1,20 @@
+# Marika specific
+
+## Storage buckets
+
+### `marika-os-images`
+
+- this is where the built images are stored
+- there is a subfolder for each organization named after the org's uuid
+- under the org, there is an `images/` subfolder
+
+### `marika-os-build-configs`
+
+- this is where we will store cloudbuild configs for the various jobs that build OS images
+- currently we have `pi_image.yaml` under `pi-build-config/`. this is arm64
+
+## Scripts
+
 # pi-gen
 
 Tool used to create Raspberry Pi OS images, and custom images based on Raspberry Pi OS,
@@ -392,7 +409,8 @@ follows:
  * Run build.sh to build all stages
  * Add SKIP files to the earlier successfully built stages
  * Modify the last stage
- * Rebuild just the last stage using ```sudo CLEAN=1 ./build.sh```
+ * Rebuild just the last stage using ```sudo CLEAN=1 ./build.sh``` (or, for docker builds
+   ```PRESERVE_CONTAINER=1 CONTINUE=1 CLEAN=1 ./build-docker.sh```)
  * Once you're happy with the image you can remove the SKIP_IMAGES files and
    export your image to test
 
