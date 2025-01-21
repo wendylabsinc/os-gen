@@ -106,6 +106,9 @@ gz)
 	pigz --force -"${COMPRESSION_LEVEL}" "$IMG_FILE" --stdout > \
 	"${DEPLOY_DIR}/${ARCHIVE_FILENAME}${IMG_SUFFIX}.img.gz"
 	;;
+tar.gz)
+	tar -czf "${DEPLOY_DIR}/${ARCHIVE_FILENAME}${IMG_SUFFIX}.tar.gz" -C "${STAGE_WORK_DIR}" "$(basename "${IMG_FILE}")"
+	;;
 xz)
 	xz --compress --force --threads 0 --memlimit-compress=50% -"${COMPRESSION_LEVEL}" \
 	--stdout "$IMG_FILE" > "${DEPLOY_DIR}/${ARCHIVE_FILENAME}${IMG_SUFFIX}.img.xz"

@@ -49,8 +49,8 @@ echo 2 > bDeviceClass
 # Set English strings
 mkdir -p strings/0x409
 echo "pi5mihai1234" > strings/0x409/serialnumber
-echo "Marika" > strings/0x409/manufacturer
-echo "Marika USB Device" > strings/0x409/product
+echo "EdgeOS" > strings/0x409/manufacturer
+echo "EdgeOS OS Device" > strings/0x409/product
 
 # Create configuration
 mkdir -p configs/c.1/strings/0x409
