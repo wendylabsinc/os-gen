@@ -52,10 +52,6 @@ install -m 755 files/update-dns-service.sh "${ROOTFS_DIR}/usr/local/sbin/"
 on_chroot << EOF
 echo "Enabling avahi-daemon service..."
 systemctl enable avahi-daemon.service
-systemctl start avahi-daemon
-
-# Update DNS service with UUID
-/usr/local/sbin/update-dns-service.sh
 EOF
 
 echo "################### 'EdgeOS' ###################"
