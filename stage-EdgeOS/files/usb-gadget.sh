@@ -28,7 +28,9 @@ generate_mac() {
 ### place this in /usr/local/sbin/usb-gadget.sh to run at boot
 
 # Variables that should be input for every new device
-GADGET_NAME="mihai_pi5"
+GADGET_NAME="edgeos_pi5"
+MANUFACTURER="EdgeOS"
+PRODUCT="EdgeOS Device"
 
 # Get Pi serial; to be used to generate MAC addresses
 PI_SERIAL=$(cat /proc/cpuinfo | grep "Serial" | awk -F: '{ gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2 }')
@@ -48,13 +50,15 @@ echo 2 > bDeviceClass
 
 # Set English strings
 mkdir -p strings/0x409
-echo "pi5mihai1234" > strings/0x409/serialnumber
-echo "EdgeOS" > strings/0x409/manufacturer
-echo "EdgeOS OS Device" > strings/0x409/product
+echo $PI_SERIAL > strings/0x409/serialnumber
+echo $MANUFACTURER > strings/0x409/manufacturer
+echo $PRODUCT > strings/0x409/product
 
 # Create configuration
 mkdir -p configs/c.1/strings/0x409
-## TODO why is this CDC?
+
+# This string is what the USB host sees when it enumerates the device’s configurations 
+# (for example, in tools like lsusb or Windows Device Manager). Labeling it “CDC” indicates that this particular configuration implements some form of USB Communications Device Class interface (e.g., CDC-ECM for USB Ethernet, CDC-ACM for virtual serial ports, etc.).
 echo "CDC" > configs/c.1/strings/0x409/configuration
 
 # 2x450mA = 900mA = power for usb3.x
@@ -151,7 +155,14 @@ else
 fi
 
 #nmcli connection modify bridge-br0 ipv4.method manual ipv4.addresses 10.55.0.1/24
-nmcli connection modify bridge-br0 ipv4.method auto
+
+###
+# Mac as DHCP & NAT gateway
+# - With ipv4.method shared, NetworkManager on your Mac runs a small DHCP server on the USB interface.
+# - The connected device will receive a private (RFC1918) IP address from the Mac.
+# - Network traffic from the device is then translated (NATed) by the Mac and sent out through the Mac’s primary internet connection.
+###
+nmcli connection modify bridge-br0 ipv4.method shared
 service dnsmasq restart
 
 # Setting up a network bridge between the windows and ecm interfaces so they use the same IP address
