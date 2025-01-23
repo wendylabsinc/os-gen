@@ -57,15 +57,15 @@ echo $PRODUCT > strings/0x409/product
 # Create configuration
 mkdir -p configs/c.1/strings/0x409
 
-# This string is what the USB host sees when it enumerates the device’s configurations 
-# (for example, in tools like lsusb or Windows Device Manager). Labeling it “CDC” indicates that this particular configuration implements some form of USB Communications Device Class interface (e.g., CDC-ECM for USB Ethernet, CDC-ACM for virtual serial ports, etc.).
+# This string is what the USB host sees when it enumerates the device's configurations 
+# (for example, in tools like lsusb or Windows Device Manager). Labeling it "CDC" indicates that this particular configuration implements some form of USB Communications Device Class interface (e.g., CDC-ECM for USB Ethernet, CDC-ACM for virtual serial ports, etc.).
 echo "CDC" > configs/c.1/strings/0x409/configuration
 
 # 2x450mA = 900mA = power for usb3.x
 # 2x250mA = 500mA = power for usb2.x
 echo 250 > configs/c.1/MaxPower
 
-# The configs/c.1/bmAttributes file in your USB gadget’s configuration directory corresponds to the 
+# The configs/c.1/bmAttributes file in your USB gadget's configuration directory corresponds to the 
 # bmAttributes field in the USB configuration descriptor. This field specifies important power 
 # and feature characteristics of your USB device configuration, such as whether the device is 
 # bus-powered or self-powered, and whether it supports remote wakeup.
@@ -126,10 +126,38 @@ ln -s functions/ecm.usb0 configs/c.1/
 
 ############## end of windows section
       
-udevadm settle -t 5 || :
-echo $(ls /sys/class/udc) > UDC
-       
+# Add a more robust UDC detection and activation
+UDC=$(ls /sys/class/udc | head -n 1)
+if [ -z "$UDC" ]; then
+    echo "No UDC driver found"
+    exit 1
+fi
+
+# Ensure clean state before activation
+echo "" > UDC
+sleep 1
+echo "$UDC" > UDC
+
+# Increase settle time and add retry logic
+udevadm settle -t 10 || :
+sleep 2
+
+# Restart NetworkManager to ensure interface is properly configured
+systemctl restart NetworkManager
 sleep 5
+
+# Bring up network connections with retry logic
+for i in {1..3}; do
+    nmcli connection up bridge-br0 && break
+    echo "Retry $i: Bringing up bridge-br0"
+    sleep 2
+done
+
+for i in {1..3}; do
+    nmcli connection up bridge-slave-usb0 && break
+    echo "Retry $i: Bringing up bridge-slave-usb0"
+    sleep 2
+done
 
 # Check if br0 exists, create it if it doesn't
 if ! nmcli connection show | grep -q "br0"; then
@@ -154,16 +182,21 @@ else
     echo "Bridge-slave connection for usb1 already exists."
 fi
 
-#nmcli connection modify bridge-br0 ipv4.method manual ipv4.addresses 10.55.0.1/24
+# First try DHCP client mode
+nmcli connection modify bridge-br0 ipv4.method auto
 
-###
-# Mac as DHCP & NAT gateway
-# - With ipv4.method shared, NetworkManager on your Mac runs a small DHCP server on the USB interface.
-# - The connected device will receive a private (RFC1918) IP address from the Mac.
-# - Network traffic from the device is then translated (NATed) by the Mac and sent out through the Mac’s primary internet connection.
-###
-nmcli connection modify bridge-br0 ipv4.method shared
-service dnsmasq restart
+# Add static IP as first fallback
+nmcli connection modify bridge-br0 +ipv4.method manual
+nmcli connection modify bridge-br0 ipv4.addresses "10.55.0.1/24"  # Choose your preferred IP
+
+# Add link-local addressing as fallback
+# This ensures the Pi gets a 169.254.x.x address even without DHCP
+nmcli connection modify bridge-br0 +ipv4.method link-local
+
+# Enable connection sharing on the Mac-facing interface
+# This makes the Pi try to auto-configure networking when connected
+nmcli connection modify bridge-br0 connection.autoconnect yes
+nmcli connection modify bridge-br0 connection.autoconnect-priority 10
 
 # Setting up a network bridge between the windows and ecm interfaces so they use the same IP address
 # starting Pi5 with the Bookworm distribution, Network Manager (nmcli) is used instead of dhcpd

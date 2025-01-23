@@ -29,7 +29,7 @@ EOF
 
 install -m 755 files/usb-gadget.sh "${ROOTFS_DIR}/usr/local/sbin/"
 install -m 644 files/usbgadget.service "${ROOTFS_DIR}/lib/systemd/system/"
-install -m 644 files/br0 "${ROOTFS_DIR}/etc/dnsmasq.d/"
+# install -m 644 files/br0 "${ROOTFS_DIR}/etc/dnsmasq.d/"
 
 ## for dynamic IP allocation
 # sudo nmcli connection modify bridge-br0 ipv4.method auto

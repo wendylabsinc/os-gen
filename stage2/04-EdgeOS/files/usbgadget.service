@@ -1,5 +1,5 @@
 [Unit]
-Description=My USB gadget
+Description=EdgeOS USB Gadget
 After=network-online.target
 Wants=network-online.target
 #After=systemd-modules-load.service
