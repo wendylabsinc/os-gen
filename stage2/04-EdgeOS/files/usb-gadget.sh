@@ -16,7 +16,7 @@ generate_mac() {
     local second_char=$(printf '%x' $((0x$first_byte & 0xfe | 0x02)))
     
     # Construct the MAC address
-    rintf "%02x:%02x:%02x:%02x:%02x:%02x" \
+    printf "%02x:%02x:%02x:%02x:%02x:%02x" \
        0x$second_char \
        0x${mac_base:2:2} \
        0x${mac_base:4:2} \
@@ -186,12 +186,12 @@ fi
 nmcli connection modify bridge-br0 ipv4.method auto
 
 # Add static IP as first fallback
-nmcli connection modify bridge-br0 +ipv4.method manual
-nmcli connection modify bridge-br0 ipv4.addresses "10.55.0.1/24"  # Choose your preferred IP
+# nmcli connection modify bridge-br0 +ipv4.method manual
+# nmcli connection modify bridge-br0 ipv4.addresses "10.55.0.1/24"  # Choose your preferred IP
 
 # Add link-local addressing as fallback
 # This ensures the Pi gets a 169.254.x.x address even without DHCP
-nmcli connection modify bridge-br0 +ipv4.method link-local
+# nmcli connection modify bridge-br0 +ipv4.method link-local
 
 # Enable connection sharing on the Mac-facing interface
 # This makes the Pi try to auto-configure networking when connected
