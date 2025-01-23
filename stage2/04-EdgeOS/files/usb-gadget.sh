@@ -126,10 +126,38 @@ ln -s functions/ecm.usb0 configs/c.1/
 
 ############## end of windows section
       
-udevadm settle -t 5 || :
-echo $(ls /sys/class/udc) > UDC
-       
+# Add a more robust UDC detection and activation
+UDC=$(ls /sys/class/udc | head -n 1)
+if [ -z "$UDC" ]; then
+    echo "No UDC driver found"
+    exit 1
+fi
+
+# Ensure clean state before activation
+echo "" > UDC
+sleep 1
+echo "$UDC" > UDC
+
+# Increase settle time and add retry logic
+udevadm settle -t 10 || :
+sleep 2
+
+# Restart NetworkManager to ensure interface is properly configured
+systemctl restart NetworkManager
 sleep 5
+
+# Bring up network connections with retry logic
+for i in {1..3}; do
+    nmcli connection up bridge-br0 && break
+    echo "Retry $i: Bringing up bridge-br0"
+    sleep 2
+done
+
+for i in {1..3}; do
+    nmcli connection up bridge-slave-usb0 && break
+    echo "Retry $i: Bringing up bridge-slave-usb0"
+    sleep 2
+done
 
 # Check if br0 exists, create it if it doesn't
 if ! nmcli connection show | grep -q "br0"; then
@@ -157,6 +185,10 @@ fi
 # First try DHCP client mode
 nmcli connection modify bridge-br0 ipv4.method auto
 
+# Add static IP as first fallback
+nmcli connection modify bridge-br0 +ipv4.method manual
+nmcli connection modify bridge-br0 ipv4.addresses "10.55.0.1/24"  # Choose your preferred IP
+
 # Add link-local addressing as fallback
 # This ensures the Pi gets a 169.254.x.x address even without DHCP
 nmcli connection modify bridge-br0 +ipv4.method link-local
@@ -164,7 +196,7 @@ nmcli connection modify bridge-br0 +ipv4.method link-local
 # Enable connection sharing on the Mac-facing interface
 # This makes the Pi try to auto-configure networking when connected
 nmcli connection modify bridge-br0 connection.autoconnect yes
-nmcli connection modify bridge-br0 connection.autoconnect-priority 1
+nmcli connection modify bridge-br0 connection.autoconnect-priority 10
 
 # Setting up a network bridge between the windows and ecm interfaces so they use the same IP address
 # starting Pi5 with the Bookworm distribution, Network Manager (nmcli) is used instead of dhcpd
