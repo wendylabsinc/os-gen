@@ -81,8 +81,8 @@ echo 0x80 > configs/c.1/bmAttributes
 cpu_serial=$(awk -F ': ' '/Serial/ {print $2}' /proc/cpuinfo)
 
 # Generate MD5 hash of the input string
-hash_host=$(echo -n "$cpu_serial-host" | md5sum | awk '{print $1}')
-hash_self=$(echo -n "$cpu_serial-self" | md5sum | awk '{print $1}')
+hash_host=$(echo -n "${cpu_serial}-host" | md5sum | awk '{print $1}')
+hash_self=$(echo -n "${cpu_serial}-self" | md5sum | awk '{print $1}')
 
 # Take the first 12 characters to form the MAC address
 mac_hex_host="${hash_host:0:12}" # "HostPC"
@@ -138,13 +138,45 @@ echo "" > UDC
 sleep 1
 echo "$UDC" > UDC
 
-# Increase settle time and add retry logic
-udevadm settle -t 10 || :
-sleep 2
+# Wait for USB device to be fully initialized
+udevadm settle -t 20
 
-# Restart NetworkManager to ensure interface is properly configured
+# Check if br0 exists, create it if it doesn't
+if ! nmcli connection show | grep -q "br0"; then
+    nmcli con add type bridge con-name bridge-br0 ifname br0
+    echo "Bridge br0 created."
+else
+    echo "Bridge br0 already exists."
+fi
+
+# Check if bridge-slave connection for usb0 exists, add it if it doesn't
+if ! nmcli connection show | grep -q "bridge-slave-usb0"; then
+    nmcli con add type bridge-slave con-name bridge-slave-usb0 ifname usb0 master br0
+    echo "Bridge-slave connection for usb0 added."
+else
+    echo "Bridge-slave connection for usb0 already exists."
+fi
+# Check if bridge-slave connection for usb0 exists, add it if it doesn't
+# if ! nmcli connection show | grep -q "bridge-slave-usb1"; then
+#     nmcli con add type bridge-slave ifname usb1 master br0
+#     echo "Bridge-slave connection for usb1 added."
+# else
+#     echo "Bridge-slave connection for usb1 already exists."
+# fi
+
+# First try DHCP client mode
+nmcli connection modify bridge-br0 ipv4.method shared
+
+# Restart NetworkManager and wait for it to be ready
 systemctl restart NetworkManager
-sleep 5
+systemctl is-active --wait NetworkManager
+while ! nmcli device &>/dev/null; do
+    echo "Waiting for NetworkManager to be ready..."
+    sleep 0.1
+done
+
+# Setting up a network bridge between the windows and ecm interfaces so they use the same IP address
+# starting Pi5 with the Bookworm distribution, Network Manager (nmcli) is used instead of dhcpd
 
 # Bring up network connections with retry logic
 for i in {1..3}; do
@@ -159,49 +191,6 @@ for i in {1..3}; do
     sleep 2
 done
 
-# Check if br0 exists, create it if it doesn't
-if ! nmcli connection show | grep -q "br0"; then
-    nmcli con add type bridge ifname br0
-    echo "Bridge br0 created."
-else
-    echo "Bridge br0 already exists."
-fi
-
-# Check if bridge-slave connection for usb0 exists, add it if it doesn't
-if ! nmcli connection show | grep -q "bridge-slave-usb0"; then
-    nmcli con add type bridge-slave ifname usb0 master br0
-    echo "Bridge-slave connection for usb0 added."
-else
-    echo "Bridge-slave connection for usb0 already exists."
-fi
-# Check if bridge-slave connection for usb0 exists, add it if it doesn't
-if ! nmcli connection show | grep -q "bridge-slave-usb1"; then
-    nmcli con add type bridge-slave ifname usb1 master br0
-    echo "Bridge-slave connection for usb1 added."
-else
-    echo "Bridge-slave connection for usb1 already exists."
-fi
-
-# First try DHCP client mode
-nmcli connection modify bridge-br0 ipv4.method auto
-
-# Add static IP as first fallback
-# nmcli connection modify bridge-br0 +ipv4.method manual
-# nmcli connection modify bridge-br0 ipv4.addresses "10.55.0.1/24"  # Choose your preferred IP
-
-# Add link-local addressing as fallback
-# This ensures the Pi gets a 169.254.x.x address even without DHCP
-# nmcli connection modify bridge-br0 +ipv4.method link-local
-
-# Enable connection sharing on the Mac-facing interface
-# This makes the Pi try to auto-configure networking when connected
-nmcli connection modify bridge-br0 connection.autoconnect yes
-nmcli connection modify bridge-br0 connection.autoconnect-priority 10
-
-# Setting up a network bridge between the windows and ecm interfaces so they use the same IP address
-# starting Pi5 with the Bookworm distribution, Network Manager (nmcli) is used instead of dhcpd
-nmcli connection up bridge-br0
-nmcli connection up bridge-slave-usb0
 #nmcli connection up bridge-slave-usb1
 
 

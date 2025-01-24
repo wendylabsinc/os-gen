@@ -55,5 +55,13 @@ systemctl enable avahi-daemon.service
 EOF
 
 echo "################### 'EdgeOS' ###################"
+echo "Installing USB gadget resume handler..."
+echo "################### 'EdgeOS' ###################"
+
+# Install udev rule and resume script
+install -m 644 files/90-usb-gadget.rules "${ROOTFS_DIR}/etc/udev/rules.d/"
+install -m 755 files/usb-gadget-resume.sh "${ROOTFS_DIR}/usr/local/sbin/"
+
+echo "################### 'EdgeOS' ###################"
 echo "Done"
 echo "################### 'EdgeOS' ###################"
