@@ -141,6 +141,14 @@ echo "$UDC" > UDC
 # Wait for USB device to be fully initialized
 udevadm settle -t 20
 
+# Check and disable dnsmasq if it's enabled
+if systemctl is-enabled dnsmasq >/dev/null 2>&1; then
+    echo "Disabling system dnsmasq service..."
+    systemctl disable dnsmasq
+else
+    echo "System dnsmasq service is already disabled"
+fi
+
 # Check if br0 exists, create it if it doesn't
 if ! nmcli connection show | grep -q "br0"; then
     nmcli con add type bridge con-name bridge-br0 ifname br0

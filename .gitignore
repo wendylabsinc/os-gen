@@ -6,3 +6,9 @@ SKIP
 SKIP_IMAGES
 .pc
 *-pc
+
+# WiFi credentials
+stage2/04-EdgeOS/files/wpa_supplicant.conf
+
+# SSH keys
+stage2/04-EdgeOS/files/authorized_keys

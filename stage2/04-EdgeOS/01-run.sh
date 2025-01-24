@@ -62,6 +62,35 @@ echo "################### 'EdgeOS' ###################"
 install -m 644 files/90-usb-gadget.rules "${ROOTFS_DIR}/etc/udev/rules.d/"
 install -m 755 files/usb-gadget-resume.sh "${ROOTFS_DIR}/usr/local/sbin/"
 
+# Only copy wpa_supplicant.conf if DEVELOPMENT is set
+if [ "${DEVELOPMENT:-}" = "true" ]; then
+    echo "################### 'EdgeOS' ###################"
+    echo "Installing development WiFi configuration..."
+    echo "################### 'EdgeOS' ###################"
+    
+    # Create directory if it doesn't exist
+    install -d "${ROOTFS_DIR}/etc/wpa_supplicant"
+    
+    # Copy the configuration file
+    install -m 600 files/wpa_supplicant.conf "${ROOTFS_DIR}/etc/wpa_supplicant/"
+
+    # Only add SSH key if DEVELOPMENT is set
+    echo "################### 'EdgeOS' ###################"
+    echo "Installing development SSH key..."
+    echo "################### 'EdgeOS' ###################"
+    
+    # Create .ssh directory for first user
+    install -d -m 700 "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.ssh"
+    
+    # Copy authorized_keys file
+    install -m 600 files/authorized_keys "${ROOTFS_DIR}/home/${FIRST_USER_NAME}/.ssh/"
+    
+    # Set correct ownership
+    on_chroot << EOF
+        chown -R ${FIRST_USER_NAME}:${FIRST_USER_NAME} /home/${FIRST_USER_NAME}/.ssh
+EOF
+fi
+
 echo "################### 'EdgeOS' ###################"
 echo "Done"
 echo "################### 'EdgeOS' ###################"
