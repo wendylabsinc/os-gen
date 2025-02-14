@@ -27,13 +27,15 @@ generate_mac() {
 
 ### place this in /usr/local/sbin/usb-gadget.sh to run at boot
 
-# Variables that should be input for every new device
+# Get Pi serial
+PI_SERIAL=$(cat /proc/cpuinfo | grep "Serial" | awk -F: '{ gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2 }')
+# Get last 8 characters of serial for a shorter identifier
+SHORT_SERIAL=${PI_SERIAL: -8}
+
+# Variables for device identification
 GADGET_NAME="edgeos_pi5"
 MANUFACTURER="EdgeOS"
-PRODUCT="EdgeOS Device"
-
-# Get Pi serial; to be used to generate MAC addresses
-PI_SERIAL=$(cat /proc/cpuinfo | grep "Serial" | awk -F: '{ gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2 }')
+PRODUCT="EdgeOS Device ${SHORT_SERIAL}"
 
 # Define gadget dir
 GADGET_DIR="/sys/kernel/config/usb_gadget/$(echo $GADGET_NAME)"

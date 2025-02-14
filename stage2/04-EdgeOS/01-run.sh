@@ -1,5 +1,29 @@
 #!/bin/bash -e
 
+SWIFT_VERSION="6.0.3"
+
+echo "################### 'EdgeOS' ###################"
+echo "Setting up EdgeOS version information..."
+echo "################### 'EdgeOS' ###################"
+
+# Create EdgeOS version files
+install -d "${ROOTFS_DIR}/etc/edgeos"
+
+# Create temporary files
+echo "EdgeOS-${EDGEOS_BUILD_HASH}" > /tmp/edgeos-build-id
+echo "-EdgeOS-${EDGEOS_BUILD_HASH}" > /tmp/localversion
+
+# Install files with proper permissions
+install -m 644 /tmp/edgeos-build-id "${ROOTFS_DIR}/etc/edgeos-build-id"
+install -m 644 /tmp/localversion "${ROOTFS_DIR}/etc/localversion"
+
+# Clean up temporary files
+rm /tmp/edgeos-build-id /tmp/localversion
+
+# Install MOTD header
+install -d "${ROOTFS_DIR}/etc/update-motd.d"
+install -m 755 files/10-edgeos-header "${ROOTFS_DIR}/etc/update-motd.d/10-edgeos-header"
+
 echo "################### 'EdgeOS' ###################"
 echo "Setting up generate-uuid.sh..."
 echo "################### 'EdgeOS' ###################"
