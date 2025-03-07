@@ -48,7 +48,7 @@ on_chroot <<- EOF
     SUDO_USER="${FIRST_USER_NAME}" do_add_dwc2_cmdline
 
     SUDO_USER="${FIRST_USER_NAME}" echo "libcomposite" >> /etc/modules
-    SUDO_USER="${FIRST_USER_NAME}" echo "usb_f_ecm" >> /etc/modules
+    SUDO_USER="${FIRST_USER_NAME}" echo "usb_f_ncm" >> /etc/modules
 EOF
 
 install -m 755 files/usb-gadget.sh "${ROOTFS_DIR}/usr/local/sbin/"

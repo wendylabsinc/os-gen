@@ -1,1 +1,1 @@
-ACTION=="bind", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", DRIVER=="cdc_ether", RUN+="/usr/local/sbin/usb-gadget-resume.sh"
+ACTION=="bind", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_interface", DRIVER=="cdc_ncm", RUN+="/usr/local/sbin/usb-gadget-resume.sh"
