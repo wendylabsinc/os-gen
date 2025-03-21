@@ -1,4 +1,10 @@
-# Marika specific
+# Edge OS specific
+
+## Build script
+
+This script exists to mimic the way our CI builds the image. I was adapted from the CI build, including creating a tgz archive of the image and build log.
+
+`ORG_ID=wendy RELEASE=bookworm ARCH=arm64 ./build-edgeos.sh`
 
 ## Storage buckets
 
