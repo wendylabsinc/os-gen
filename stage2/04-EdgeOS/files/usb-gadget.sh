@@ -27,13 +27,15 @@ generate_mac() {
 
 ### place this in /usr/local/sbin/usb-gadget.sh to run at boot
 
-# Variables that should be input for every new device
+# Get Pi serial
+PI_SERIAL=$(cat /proc/cpuinfo | grep "Serial" | awk -F: '{ gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2 }')
+# Get last 8 characters of serial for a shorter identifier
+SHORT_SERIAL=${PI_SERIAL: -8}
+
+# Variables for device identification
 GADGET_NAME="edgeos_pi5"
 MANUFACTURER="EdgeOS"
-PRODUCT="EdgeOS Device"
-
-# Get Pi serial; to be used to generate MAC addresses
-PI_SERIAL=$(cat /proc/cpuinfo | grep "Serial" | awk -F: '{ gsub(/^[ \t]+|[ \t]+$/, "", $2); print $2 }')
+PRODUCT="EdgeOS Device ${SHORT_SERIAL}"
 
 # Define gadget dir
 GADGET_DIR="/sys/kernel/config/usb_gadget/$(echo $GADGET_NAME)"
@@ -45,8 +47,8 @@ echo 0x1d6b > idVendor # Linux Foundation
 echo 0x0104 > idProduct # Multifunction Composite Gadget
 
 echo 0x0103 > bcdDevice # v1.0.3
-echo 0x0320 > bcdUSB # USB2
-echo 2 > bDeviceClass
+echo 0x0200 > bcdUSB   # Change to USB 2.0 explicitly since we know DWC2 is used
+echo 2 > bDeviceClass  # Composite device class (correct)
 
 # Set English strings
 mkdir -p strings/0x409
@@ -63,7 +65,9 @@ echo "CDC" > configs/c.1/strings/0x409/configuration
 
 # 2x450mA = 900mA = power for usb3.x
 # 2x250mA = 500mA = power for usb2.x
-echo 250 > configs/c.1/MaxPower
+# with USB-PD the power negotiation is done by the USB-C cable and the power is set by the device. this is a 
+# fallback to ensure the device is powered when the USB-C cable is not USB-PD compliant.
+echo 450 > configs/c.1/MaxPower
 
 # The configs/c.1/bmAttributes file in your USB gadget's configuration directory corresponds to the 
 # bmAttributes field in the USB configuration descriptor. This field specifies important power 
@@ -77,29 +81,25 @@ echo 250 > configs/c.1/MaxPower
 # 	•	Meaning: Bus-powered device with remote wakeup support.
 echo 0x80 > configs/c.1/bmAttributes
 
-# Generate MAC address
+# Generate MAC addresses
 cpu_serial=$(awk -F ': ' '/Serial/ {print $2}' /proc/cpuinfo)
 
-# Generate MD5 hash of the input string
-hash_host=$(echo -n "${cpu_serial}-host" | md5sum | awk '{print $1}')
-hash_self=$(echo -n "${cpu_serial}-self" | md5sum | awk '{print $1}')
+# Generate different MACs for each interface
+hash_host_ncm=$(echo -n "${cpu_serial}-host-ncm" | md5sum | awk '{print $1}')
+hash_self_ncm=$(echo -n "${cpu_serial}-self-ncm" | md5sum | awk '{print $1}')
 
-# Take the first 12 characters to form the MAC address
-mac_hex_host="${hash_host:0:12}" # "HostPC"
-mac_hex_self="${hash_self:0:12}" # "BadUSB"
+# Generate MAC addresses
+mac_address_host_ncm=$(generate_mac "$hash_host_ncm")
+mac_address_self_ncm=$(generate_mac "$hash_self_ncm")
 
-mac_address_host=$(generate_mac "$mac_hex_host")
-mac_address_self=$(generate_mac "$mac_hex_self")
+echo "Generated MAC Address for host_ncm: $mac_address_host_ncm"
+echo "Generated MAC Address for self_ncm: $mac_address_self_ncm"
 
-echo "Generated MAC Address for host: $mac_address_host"
-echo "Generated MAC Address for self: $mac_address_self"
-
-# ECM - create ethernet configuration
-mkdir -p functions/ecm.usb0
-echo $mac_address_host > functions/ecm.usb0/host_addr
-echo $mac_address_self > functions/ecm.usb0/dev_addr
-# link function to configuration
-ln -s functions/ecm.usb0 configs/c.1/
+# NCM configuration
+mkdir -p functions/ncm.usb0
+echo $mac_address_host_ncm > functions/ncm.usb0/host_addr
+echo $mac_address_self_ncm > functions/ncm.usb0/dev_addr
+ln -s functions/ncm.usb0 configs/c.1/
 
 ## This section is for Windows
 # RNDIS -  
@@ -158,19 +158,12 @@ else
 fi
 
 # Check if bridge-slave connection for usb0 exists, add it if it doesn't
-if ! nmcli connection show | grep -q "bridge-slave-usb0"; then
-    nmcli con add type bridge-slave con-name bridge-slave-usb0 ifname usb0 master br0
-    echo "Bridge-slave connection for usb0 added."
+if ! nmcli connection show | grep -q "bridge-slave-ncm0"; then
+    nmcli con add type bridge-slave con-name bridge-slave-ncm0 ifname ncm0 master br0
+    echo "Bridge-slave connection for ncm0 added."
 else
-    echo "Bridge-slave connection for usb0 already exists."
+    echo "Bridge-slave connection for ncm0 already exists."
 fi
-# Check if bridge-slave connection for usb0 exists, add it if it doesn't
-# if ! nmcli connection show | grep -q "bridge-slave-usb1"; then
-#     nmcli con add type bridge-slave ifname usb1 master br0
-#     echo "Bridge-slave connection for usb1 added."
-# else
-#     echo "Bridge-slave connection for usb1 already exists."
-# fi
 
 # First try DHCP client mode
 nmcli connection modify bridge-br0 ipv4.method shared
@@ -194,11 +187,9 @@ for i in {1..3}; do
 done
 
 for i in {1..3}; do
-    nmcli connection up bridge-slave-usb0 && break
-    echo "Retry $i: Bringing up bridge-slave-usb0"
+    nmcli connection up bridge-slave-ncm0 && break
+    echo "Retry $i: Bringing up bridge-slave-ncm0"
     sleep 2
 done
-
-#nmcli connection up bridge-slave-usb1
 
 

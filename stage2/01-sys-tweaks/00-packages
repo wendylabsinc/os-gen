@@ -37,3 +37,4 @@ unzip zip p7zip-full
 file
 kms++-utils
 python3-venv
+uuid-runtime
